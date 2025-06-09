@@ -16,6 +16,9 @@ class SimpleChart(Widget):
             fill=(91, 113, 146),
             line=(255, 255, 255),
             text=(255, 255, 255),
+            marker=(255, 0, 0),
+            width=1,
+            x_scl=1,
     ):
         self.value = value
         self.filled = filled
@@ -26,7 +29,9 @@ class SimpleChart(Widget):
         self.bg = bg
         self.line = line
         self.text = text
-
+        self.marker = marker
+        self.width = width
+        self.x_scl = x_scl
         self.view = None
         self.image = None
 
@@ -38,7 +43,7 @@ class SimpleChart(Widget):
         else:
             self.view = view
             data = view.data
-            size = (len(data), self.height)
+            size = (int(len(data) * self.x_scl), self.height)
             self.image = Image.new("RGBA", size, self.bg)
             draw = ImageDraw.Draw(self.image)
 
@@ -56,18 +61,19 @@ class SimpleChart(Widget):
             def y_pos(val):
                 return size[1] - 1 - (val - min_val) * scale_y
 
-            filtered = [(x, y) for x, y in enumerate(data) if y is not None]
+            filtered = [(x * self.x_scl, y)
+                        for x, y in enumerate(data) if y is not None]
 
             if self.filled:
                 for x, y in filtered:
                     # (0,0) is top left
                     points = ((x, size[1] - 1), (x, y_pos(y)))
 
-                    draw.line(points, width=1, fill=self.fill)
+                    draw.line(points, width=self.width, fill=self.fill)
 
             points = [(x, y_pos(y)) for x, y in filtered]
 
-            draw.line(points, width=2, fill=self.line)
+            draw.line(points, width=self.width, fill=self.line)
 
             if self.font:
                 draw.text((10, 4), f"{max_val:.0f}", font=self.font, fill=self.text, stroke_width=2,
@@ -75,8 +81,9 @@ class SimpleChart(Widget):
                 draw.text((10, self.height - 10), f"{min_val:.0f}", font=self.font, fill=self.text, stroke_width=2,
                           stroke_fill=(0, 0, 0), anchor="lb")
 
-            marker_val = data[int(size[0] / 2)]
+            marker_val = data[self.view.marker_idx]
             if marker_val:
-                draw_marker(draw, (size[0] / 2, y_pos(marker_val)), 4, fill=(255, 0, 0))
+                draw_marker(
+                    draw, (self.view.marker_idx * self.x_scl, y_pos(marker_val)), 4, fill=self.marker)
 
         image.alpha_composite(self.image, (0, 0))

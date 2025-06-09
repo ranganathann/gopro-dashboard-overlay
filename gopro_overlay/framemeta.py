@@ -9,8 +9,9 @@ from gopro_overlay.timeunits import Timeunit, timeunits
 
 
 class View:
-    def __init__(self, data, version):
+    def __init__(self, data, marker_idx, version):
         self.data = data
+        self.marker_idx = marker_idx
         self.version = version
 
 
@@ -28,6 +29,8 @@ class Window:
     def __init__(self, ts, duration: Timeunit, samples, key=lambda e: 1, missing=None):
         self.ts = ts
         self.duration = duration
+        print(f"duration: {duration}, ts.max: {ts.max}, ts.min: {ts.min}")
+        self.duration = min(duration, ts.max - ts.min)
         self.samples = samples
         alignment = find_best_alignment(duration, samples)
         self.tick = (duration / samples).align(alignment)
@@ -53,7 +56,11 @@ class Window:
         start = at - self.duration / 2
         end = at + self.duration / 2
 
+        start = self.ts.min
+        end = self.ts.max
+
         current = start
+        marker_idx = 0
 
         data = []
 
@@ -68,11 +75,15 @@ class Window:
                     data.append(value)
                 else:
                     data.append(self.missing)
+
+                if current > at and marker_idx == 0:
+                    marker_idx = len(data) - 1
+
             current += self.tick
 
         self.version += 1
         self.last_time = at
-        self.last_view = View(data, self.version)
+        self.last_view = View(data, marker_idx, self.version)
 
         return self.last_view
 
@@ -165,11 +176,13 @@ class FrameMeta:
     def _get_closest(self, frame_time) -> Entry:
 
         if frame_time < self.min:
-            log(f"Request for data at time {frame_time}, before start of metadata, returning first item")
+            log(
+                f"Request for data at time {frame_time}, before start of metadata, returning first item")
             return self.frames[self.framelist[0]]
 
         if frame_time > self.max:
-            log(f"Request for data at time {frame_time}, after end of metadata, returning last item")
+            log(
+                f"Request for data at time {frame_time}, after end of metadata, returning last item")
             return self.frames[self.framelist[-1]]
 
         later_idx = bisect.bisect_left(self.framelist, frame_time)
@@ -188,7 +201,8 @@ class FrameMeta:
     def items(self, step: timedelta = timedelta(seconds=0)):
         self.check_modified()
 
-        last_dt = datetime.datetime(year=1900, month=1, day=1, tzinfo=datetime.timezone.utc)
+        last_dt = datetime.datetime(
+            year=1900, month=1, day=1, tzinfo=datetime.timezone.utc)
 
         for pts in self.framelist:
             entry = self.frames[pts]
@@ -222,7 +236,7 @@ class FrameMeta:
                 updates = processor(entry_a, entry_b, skip)
                 if updates:
                     entry_b.update(**updates)
-    
+
     def process(self, processor, filter_fn: Callable[[Entry], bool] = lambda e: True):
         self.check_modified()
         for pts in self.framelist:

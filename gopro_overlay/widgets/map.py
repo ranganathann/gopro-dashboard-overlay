@@ -25,11 +25,15 @@ class PerceptibleMovementCheck:
         if self.always:
             return True
 
-        location_of_centre_pixel = map.geocode((map.size[0] / 2, map.size[1] / 2))
-        location_of_one_pixel_away = map.geocode(((map.size[0] / 2) + 1, (map.size[1] / 2) + 1))
+        location_of_centre_pixel = map.geocode(
+            (map.size[0] / 2, map.size[1] / 2))
+        location_of_one_pixel_away = map.geocode(
+            ((map.size[0] / 2) + 1, (map.size[1] / 2) + 1))
 
-        x_resolution = abs(location_of_one_pixel_away[0] - location_of_centre_pixel[0])
-        y_resolution = abs(location_of_one_pixel_away[1] - location_of_centre_pixel[1])
+        x_resolution = abs(
+            location_of_one_pixel_away[0] - location_of_centre_pixel[0])
+        y_resolution = abs(
+            location_of_one_pixel_away[1] - location_of_centre_pixel[1])
 
         if self.last_location is not None:
             x_diff = abs(self.last_location.lon - location.lon)
@@ -67,7 +71,8 @@ class MaybeRoundedBorder:
             )
         else:
             draw.line(
-                (0, 0, 0, self.size - 1, self.size - 1, self.size - 1, self.size - 1, 0, 0, 0),
+                (0, 0, 0, self.size - 1, self.size - 1,
+                 self.size - 1, self.size - 1, 0, 0, 0),
                 fill=(0, 0, 0)
             )
             image.putalpha(int(255 * self.opacity))
@@ -90,7 +95,8 @@ class JourneyMap(Widget):
         self.location = location
         self.renderer = renderer
         self.size = size
-        self.border = MaybeRoundedBorder(size=size, corner_radius=corner_radius, opacity=opacity)
+        self.border = MaybeRoundedBorder(
+            size=size, corner_radius=corner_radius, opacity=opacity)
         self.map = None
         self.image = None
 
@@ -164,7 +170,8 @@ class MovingMap(Widget):
             self.half_width_height + (self.size / 2)
         )
         self.perceptible = PerceptibleMovementCheck(always_redraw)
-        self.border = MaybeRoundedBorder(size=size, corner_radius=corner_radius, opacity=opacity)
+        self.border = MaybeRoundedBorder(
+            size=size, corner_radius=corner_radius, opacity=opacity)
         self.cached = None
 
     def _redraw(self, map):
@@ -256,14 +263,18 @@ class MovingJourneyMap(Widget):
 
         location = self.location()
         if location.lon is not None and location.lat is not None:
-            current_position_in_big_map = self.cached_map.rev_geocode((location.lon, location.lat))
+            current_position_in_big_map = self.cached_map.rev_geocode(
+                (location.lon, location.lat))
 
             map_size = self.cached_map_image.size
 
-            lr = view_window(self.size, map_size[0])(int(current_position_in_big_map[0]))
-            tb = view_window(self.size, map_size[1])(int(current_position_in_big_map[1]))
+            lr = view_window(self.size, map_size[0])(
+                int(current_position_in_big_map[0]))
+            tb = view_window(self.size, map_size[1])(
+                int(current_position_in_big_map[1]))
 
-            image.alpha_composite(self.cached_map_image, (0, 0), source=(lr[0], tb[0], lr[1], tb[1]))
+            image.alpha_composite(self.cached_map_image,
+                                  (0, 0), source=(lr[0], tb[0], lr[1], tb[1]))
             draw_marker(draw, (int(self.size / 2), int(self.size / 2)), 6)
 
 
@@ -278,7 +289,8 @@ class OutLine:
         if self.outline_width > 0:
             draw.line(points, fill=self.outline, width=self.fill_width)
 
-        draw.line(points, fill=self.fill, width=self.fill_width - self.outline_width)
+        draw.line(points, fill=self.fill,
+                  width=self.fill_width - self.outline_width)
 
 
 class Circuit(Widget):
@@ -290,15 +302,19 @@ class Circuit(Widget):
         self.dimensions = dimensions
         self.privacy_zone = privacy_zone
 
-        self.outline = OutLine(fill=fill, fill_width=fill_width, outline=outline, outline_width=outline_width)
+        self.outline = OutLine(
+            fill=fill, fill_width=fill_width, outline=outline, outline_width=outline_width)
 
         self.image = None
         self.bbox = None
         self.size = None
+        self.fill = fill
 
     def scale(self, point):
-        x = int((((point.lat - self.bbox.min.lat) / self.size.x) * self.dimensions.x) + self.dimensions.x / 20)
-        y = int((((point.lon - self.bbox.min.lon) / self.size.y) * self.dimensions.y) + self.dimensions.y / 20)
+        x = int((((point.lat - self.bbox.min.lat) / self.size.x)
+                * self.dimensions.x) + self.dimensions.x / 20)
+        y = int((((point.lon - self.bbox.min.lon) / self.size.y)
+                * self.dimensions.y) + self.dimensions.y / 20)
         return x, y
 
     def draw(self, image: Image, draw: ImageDraw):
@@ -309,10 +325,12 @@ class Circuit(Widget):
             self.bbox = journey.bounding_box
             self.size = self.bbox.size() * 1.1
 
-            self.image = Image.new("RGBA", self.dimensions.tuple(), (0, 0, 0, 0))
+            self.image = Image.new(
+                "RGBA", self.dimensions.tuple(), (0, 0, 0, 0))
             draw = ImageDraw.Draw(self.image)
 
-            points = [self.scale(p) for p in journey.locations if not self.privacy_zone.encloses(p)]
+            points = [self.scale(
+                p) for p in journey.locations if not self.privacy_zone.encloses(p)]
 
             self.outline.draw(draw, rdp(points, 1))
 
@@ -321,6 +339,6 @@ class Circuit(Widget):
         draw = ImageDraw.Draw(frame)
 
         if not self.privacy_zone.encloses(location):
-            draw_marker(draw, self.scale(location), 6)
+            draw_marker(draw, self.scale(location), 6, fill=self.fill)
 
         image.alpha_composite(frame, (0, 0))

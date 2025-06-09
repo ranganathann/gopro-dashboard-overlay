@@ -150,7 +150,8 @@ def layout_from_xml(xml, renderer, framemeta, font, privacy, include=lambda name
             attr = f"create_{component_type}"
 
             if not hasattr(factory, attr):
-                raise IOError(f"Component of type of '{component_type}' is not recognised, check spelling / examples")
+                raise IOError(
+                    f"Component of type of '{component_type}' is not recognised, check spelling / examples")
 
             method = getattr(factory, attr)
             return decorate(
@@ -180,7 +181,8 @@ def layout_from_xml(xml, renderer, framemeta, font, privacy, include=lambda name
                 widget=Translate(
                     at(element),
                     Frame(
-                        dimensions=Dimension(x=iattrib(element, "width"), y=iattrib(element, "height")),
+                        dimensions=Dimension(
+                            x=iattrib(element, "width"), y=iattrib(element, "height")),
                         opacity=fattrib(element, "opacity", d=1.0),
                         corner_radius=iattrib(element, "cr", d=0),
                         outline=rgbattr(element, "outline", None),
@@ -201,7 +203,8 @@ def layout_from_xml(xml, renderer, framemeta, font, privacy, include=lambda name
                 "frame": create_frame,
             }
             if element.tag not in elements:
-                raise IOError(f"Tag {element.tag} is not recognised. Should be one of '{list(elements.keys())}'")
+                raise IOError(
+                    f"Tag {element.tag} is not recognised. Should be one of '{list(elements.keys())}'")
 
             return elements[element.tag](element, level)
 
@@ -231,7 +234,8 @@ def attrib(el, a, f: Callable[[str], T] = lambda v: v, **kwargs) -> T:
     if a not in el.attrib:
         if "d" in kwargs:
             return kwargs["d"]
-        raise ValueError(f"Was expecting element '{el.tag}' to have attribute '{a}', but it does not")
+        raise ValueError(
+            f"Was expecting element '{el.tag}' to have attribute '{a}', but it does not")
     return f(el.attrib[a])
 
 
@@ -239,7 +243,8 @@ def iattrib(el, a, d=None, r=None) -> int:
     v = attrib(el, a, f=int, d=d)
     if r:
         if v not in r:
-            raise ValueError(f"Value for '{a}' in '{el.tag}' needs to lie in range {r.start} to {r.stop}, not '{v}'")
+            raise ValueError(
+                f"Value for '{a}' in '{el.tag}' needs to lie in range {r.start} to {r.stop}, not '{v}'")
     return v
 
 
@@ -247,7 +252,8 @@ def fattrib(el, a, d=None, r=None) -> float:
     v = attrib(el, a, f=float, d=d)
     if r:
         if v not in r:
-            raise ValueError(f"Value for '{a}' in '{el.tag}' needs to lie in range {r.start} to {r.stop}, not '{v}'")
+            raise ValueError(
+                f"Value for '{a}' in '{el.tag}' needs to lie in range {r.start} to {r.stop}, not '{v}'")
     return v
 
 
@@ -305,11 +311,12 @@ def metric_accessor_from(name: str) -> Callable[[Entry], Optional[pint.Quantity]
         "ori.yaw": lambda e: e.ori.yaw if e.ori else None,
         "lat": lambda e: units.Quantity(e.point.lat, units.location),
         "lon": lambda e: units.Quantity(e.point.lon, units.location),
-        "sdps": lambda e: e.sdps, # Vaaka cadence sensor distance-per-stroke field
+        "sdps": lambda e: e.sdps,  # Vaaka cadence sensor distance-per-stroke field
     }
     if name in accessors:
         return accessors[name]
-    raise IOError(f"The metric '{name}' is not supported. Use one of: {list(accessors.keys())}")
+    raise IOError(
+        f"The metric '{name}' is not supported. Use one of: {list(accessors.keys())}")
 
 
 def quantity_formatter_for(format_string: Optional[str], dp: Optional[int]) -> Callable[[pint.Quantity], str]:
@@ -327,7 +334,8 @@ def quantity_formatter_for(format_string: Optional[str], dp: Optional[int]) -> C
             try:
                 return lambda q: format(q.m, format_string)
             except ValueError:
-                raise ValueError(f"Unable to format value with format string {format_string}")
+                raise ValueError(
+                    f"Unable to format value with format string {format_string}")
     elif dp is not None:
         return lambda q: format(q.m, f".{dp}f")
     else:
@@ -409,7 +417,8 @@ class Widgets:
             accessor=metric_accessor_from(attrib(element, "metric")),
             formatter=quantity_formatter_from(element),
             font=self._font(element, "size", d=16),
-            converter=self.converters.converter(attrib(element, "units", d=None)),
+            converter=self.converters.converter(
+                attrib(element, "units", d=None)),
             align=attrib(element, "align", d="left"),
             cache=battrib(element, "cache", d=True),
             fill=rgbattr(element, "rgb", d=(255, 255, 255)),
@@ -428,7 +437,8 @@ class Widgets:
             accessor=metric_accessor_from(attrib(element, "metric")),
             formatter=lambda q: format_string.format(q.u),
             font=self._font(element, "size", d=16),
-            converter=self.converters.converter(attrib(element, "units", d=None)),
+            converter=self.converters.converter(
+                attrib(element, "units", d=None)),
             align=attrib(element, "align", d="left"),
             cache=True,
             fill=rgbattr(element, "rgb", d=(255, 255, 255)),
@@ -461,7 +471,8 @@ class Widgets:
     @allow_attributes({"x", "y", "size", "align", "direction", "rgb", "outline", "outline_width"})
     def create_text(self, element: ET.Element, entry, **kwargs) -> Widget:
         if element.text is None:
-            raise IOError("Text components should have the text in the element like <component...>Text</component>")
+            raise IOError(
+                "Text components should have the text in the element like <component...>Text</component>")
 
         return text(
             at=at(element),
@@ -531,10 +542,11 @@ class Widgets:
 
     @allow_attributes({"x", "y", "metric", "units", "seconds",
                        "samples", "values", "textsize", "filled",
-                       "height", "bg", "fill", "line", "text"})
+                       "height", "bg", "fill", "line", "text", "marker", "width", "x_scl"})
     def create_chart(self, element: ET.Element, entry, **kwargs) -> Widget:
         accessor = metric_accessor_from(attrib(element, "metric", d="alt"))
-        converter = self.converters.converter(attrib(element, "units", d="metres"))
+        converter = self.converters.converter(
+            attrib(element, "units", d="metres"))
 
         def value(e):
             v = accessor(e)
@@ -558,7 +570,8 @@ class Widgets:
         return Translate(
             at=at(element),
             widget=SimpleChart(
-                value=lambda: window.view(timeunits(millis=entry().timestamp.magnitude)),
+                value=lambda: window.view(
+                    timeunits(millis=entry().timestamp.magnitude)),
                 font=title,
                 filled=battrib(element, "filled", d=True),
                 height=iattrib(element, "height", d=64),
@@ -566,6 +579,9 @@ class Widgets:
                 fill=rgbattr(element, "fill", d=(91, 113, 146, 170)),
                 line=rgbattr(element, "line", d=(255, 255, 255, 170)),
                 text=rgbattr(element, "text", d=(255, 255, 255, 170)),
+                marker=rgbattr(element, "marker", d=(255, 0, 0, 170)),
+                width=iattrib(element, "width", d=1),
+                x_scl=fattrib(element, "x_scl", d=1),
             )
         )
 
@@ -597,11 +613,13 @@ class Widgets:
                        "outline", "outline-width", "h-neg", "h-pos", "max", "min", "cr"})
     def create_bar(self, element: ET.Element, entry, **kwargs) -> Widget:
         return Bar(
-            size=Dimension(x=iattrib(element, "width", d=400), y=iattrib(element, "height", d=30)),
+            size=Dimension(x=iattrib(element, "width", d=400),
+                           y=iattrib(element, "height", d=30)),
             reading=metric_value(
                 entry,
                 accessor=metric_accessor_from(attrib(element, "metric")),
-                converter=self.converters.converter(attrib(element, "units", d=None)),
+                converter=self.converters.converter(
+                    attrib(element, "units", d=None)),
                 formatter=lambda q: q.m,
                 default=0
             ),
@@ -629,7 +647,8 @@ class Widgets:
             reading=metric_value(
                 entry,
                 accessor=metric_accessor_from(attrib(element, "metric")),
-                converter=self.converters.converter(attrib(element, "units", d=None)),
+                converter=self.converters.converter(
+                    attrib(element, "units", d=None)),
                 formatter=lambda q: q.m,
                 default=0
             ),
@@ -655,8 +674,10 @@ class Widgets:
             size=iattrib(element, "size", d=256),
             reading=metric_value(
                 entry,
-                accessor=metric_accessor_from(attrib(element, "metric", d="speed")),
-                converter=self.converters.converter(attrib(element, "units", d="knots")),
+                accessor=metric_accessor_from(
+                    attrib(element, "metric", d="speed")),
+                converter=self.converters.converter(
+                    attrib(element, "units", d="knots")),
                 formatter=lambda q: q.m,
                 default=0
             ),
@@ -675,8 +696,10 @@ class Widgets:
             size=iattrib(element, "size", d=256),
             reading=metric_value(
                 entry,
-                accessor=metric_accessor_from(attrib(element, "metric", d="speed")),
-                converter=self.converters.converter(attrib(element, "units", d="knots")),
+                accessor=metric_accessor_from(
+                    attrib(element, "metric", d="speed")),
+                converter=self.converters.converter(
+                    attrib(element, "units", d="knots")),
                 formatter=lambda q: q.m,
                 default=0
             ),
@@ -695,8 +718,10 @@ class Widgets:
             size=iattrib(element, "size", d=256),
             reading=metric_value(
                 entry,
-                accessor=metric_accessor_from(attrib(element, "metric", d="speed")),
-                converter=self.converters.converter(attrib(element, "units", d="knots")),
+                accessor=metric_accessor_from(
+                    attrib(element, "metric", d="speed")),
+                converter=self.converters.converter(
+                    attrib(element, "units", d="knots")),
                 formatter=lambda q: q.m,
                 default=0
             ),
@@ -714,10 +739,14 @@ class Widgets:
         size = iattrib(element, "size", d=64)
         return GPSLock(
             fix=lambda: entry().gpsfix,
-            lock_no=simple_icon(at, attrib(element, "lock_none", d="gps_lock_none.png"), size),
-            lock_unknown=simple_icon(at, attrib(element, "lock_unknown", d="gps_lock_unknown.png"), size),
-            lock_2d=simple_icon(at, attrib(element, "lock_2d", d="gps_lock_2d.png"), size),
-            lock_3d=simple_icon(at, attrib(element, "lock_3d", d="gps_lock_3d.png"), size),
+            lock_no=simple_icon(at, attrib(
+                element, "lock_none", d="gps_lock_none.png"), size),
+            lock_unknown=simple_icon(at, attrib(
+                element, "lock_unknown", d="gps_lock_unknown.png"), size),
+            lock_2d=simple_icon(at, attrib(
+                element, "lock_2d", d="gps_lock_2d.png"), size),
+            lock_3d=simple_icon(at, attrib(
+                element, "lock_3d", d="gps_lock_3d.png"), size),
         )
 
     def with_cairo(self, f: Callable):
@@ -725,7 +754,8 @@ class Widgets:
             import gopro_overlay.layout_xml_cairo
             return f(gopro_overlay.layout_xml_cairo)
         except ModuleNotFoundError:
-            raise IOError("This widget needs pycairo to be installed - please see docs") from None
+            raise IOError(
+                "This widget needs pycairo to be installed - please see docs") from None
 
     def create_cairo_circuit_map(self, element: ET.Element, entry, **kwargs):
         return self.with_cairo(lambda m: m.create_cairo_circuit_map(element, entry, self.framemeta, **kwargs))
